@@ -160,7 +160,7 @@ func (k *KeycloakAuthenticator)GetMiddlewareWithRequiredRole(requiredRole string
 
 			if len(requiredRole) != 0 {
 				if len(claims.RealmAccess.Roles) == 0 || !contains(claims.RealmAccess.Roles, requiredRole) {
-					k.ErrorHandler(newErrForbidden("you have not the required roles, access denied"), c)
+					k.ErrorHandler(newErrForbidden("you do not have the required role, access denied"), c)
 					return
 				}
 			}
