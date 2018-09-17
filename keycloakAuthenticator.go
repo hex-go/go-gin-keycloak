@@ -32,13 +32,18 @@ type OpenIDClaims struct {
 	Picture string `json:"picture"`
 	Website string `json:"website"`
 	Email string `json:"email"`
-	EmailVerified *bool `json:"email_verified"`
+	EmailVerified bool `json:"email_verified"`
 	Gender string `json:"gender"`
 	Birthdate string `json:"birthdate"`
 	ZoneInfo string `json:"string"`
 	Locale string `json:"locale"`
 	PhoneNumber string `json:"phone_number"`
 	PhoneNumberVerified string `json:"phone_number_verified"`
+	RealmAccess RoleClaims `json:"realm_access"`
+}
+
+type RoleClaims struct {
+	Roles []string `json:"roles"`
 }
 
 type defaultErrorResponse struct {
@@ -55,7 +60,7 @@ type errorDetail struct {
 type ErrorHandlerFunc func(error, *gin.Context)
 
 func NewKeycloakAuthenticator(urls []string, errorHandler ErrorHandlerFunc) (*KeycloakAuthenticator, error) {
-		ctx := context.Background()
+	ctx := context.Background()
 
 	var verifiers []*oidc.IDTokenVerifier
 
@@ -84,21 +89,44 @@ func NewKeycloakAuthenticator(urls []string, errorHandler ErrorHandlerFunc) (*Ke
 }
 
 func DefaultErrorHandler(err error, c *gin.Context) {
-	response := defaultErrorResponse{
-		Time: time.Now(),
-		Status: 401,
-		Message: "Unauthorized",
-		Detail: &[]errorDetail{
-			{
-				Message: err.Error(),
+
+	switch err.(type) {
+	case *ErrForbidden:
+		response := defaultErrorResponse{
+			Time: time.Now(),
+			Status: 403,
+			Message: "Forbidden",
+			Detail: &[]errorDetail{
+				{
+					Message: err.Error(),
+				},
 			},
-		},
+		}
+
+		c.AbortWithStatusJSON(403, response)
+	default:
+		response := defaultErrorResponse{
+			Time: time.Now(),
+			Status: 401,
+			Message: "Unauthorized",
+			Detail: &[]errorDetail{
+				{
+					Message: err.Error(),
+				},
+			},
+		}
+
+		c.AbortWithStatusJSON(401, response)
 	}
 
-	c.AbortWithStatusJSON(401, response)
+
 }
 
 func (k *KeycloakAuthenticator)GetMiddleware() gin.HandlerFunc {
+	return k.GetMiddlewareWithRequiredRole("")
+}
+
+func (k *KeycloakAuthenticator)GetMiddlewareWithRequiredRole(requiredRole string) gin.HandlerFunc {
 	ctx := context.Background()
 
 	return func(c *gin.Context) {
@@ -127,9 +155,17 @@ func (k *KeycloakAuthenticator)GetMiddleware() gin.HandlerFunc {
 		}
 
 		if success {
-			c.Set(KeycloakToken, token)
 			var claims OpenIDClaims
 			token.Claims(&claims)
+
+			if len(requiredRole) != 0 {
+				if len(claims.RealmAccess.Roles) == 0 || !contains(claims.RealmAccess.Roles, requiredRole) {
+					k.ErrorHandler(newErrForbidden("you have not the required roles, access denied"), c)
+					return
+				}
+			}
+
+			c.Set(KeycloakToken, token)
 			c.Set(KeycloakEmail, claims.Email)
 			c.Set(KeycloakUsername, claims.PreferredUsername)
 			c.Set(KeycloakSubjectId, token.Subject)
@@ -140,4 +176,13 @@ func (k *KeycloakAuthenticator)GetMiddleware() gin.HandlerFunc {
 			return
 		}
 	}
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

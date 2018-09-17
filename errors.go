@@ -58,3 +58,17 @@ func newErrUnauthorized(message string) *ErrUnauthorized {
 func (e *ErrUnauthorized) Error() string {
 	return e.message
 }
+
+type ErrForbidden struct {
+	message string
+}
+
+func newErrForbidden(message string) *ErrForbidden {
+	return &ErrForbidden{
+		message: message,
+	}
+}
+
+func (e *ErrForbidden) Error() string {
+	return e.message
+}
