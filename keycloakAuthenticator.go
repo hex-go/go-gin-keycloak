@@ -172,7 +172,11 @@ func (k *KeycloakAuthenticator)GetMiddlewareWithRequiredRole(requiredRole string
 			c.Set(KeycloakClaims, claims)
 			c.Next()
 		} else {
-			k.ErrorHandler(newErrUnauthorized(error.Error()), c)
+			if error != nil {
+				k.ErrorHandler(newErrUnauthorized(error.Error()), c)
+			} else {
+				k.ErrorHandler(newErrUnauthorized("Unauthorized"), c)
+			}
 			return
 		}
 	}
