@@ -2,7 +2,7 @@ package keycloak
 
 import (
 	"context"
-	"github.com/coreos/go-oidc"
+	"github.com/mtrossbach/go-oidc"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
