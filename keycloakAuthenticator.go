@@ -40,6 +40,9 @@ type OpenIDClaims struct {
 	PhoneNumber string `json:"phone_number"`
 	PhoneNumberVerified string `json:"phone_number_verified"`
 	RealmAccess RoleClaims `json:"realm_access"`
+	Oid string `json:"oid"`
+	Upn string `json:"upn"`
+	AppId string `json:"appid"`
 }
 
 type RoleClaims struct {
