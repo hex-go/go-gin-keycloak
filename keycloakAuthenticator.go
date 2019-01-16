@@ -43,6 +43,7 @@ type OpenIDClaims struct {
 	Oid string `json:"oid"`
 	Upn string `json:"upn"`
 	AppId string `json:"appid"`
+	Roles []string `json:"roles"`
 }
 
 type RoleClaims struct {
