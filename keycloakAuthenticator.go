@@ -131,6 +131,10 @@ func (k *KeycloakAuthenticator)GetMiddleware() gin.HandlerFunc {
 }
 
 func (k *KeycloakAuthenticator)GetMiddlewareWithRequiredRole(requiredRole string) gin.HandlerFunc {
+	return k.GetMiddlewareWithAnyRequiredRoles([]string{requiredRole})
+}
+
+func (k *KeycloakAuthenticator)GetMiddlewareWithAnyRequiredRoles(requiredRoles []string) gin.HandlerFunc {
 	ctx := context.Background()
 
 	return func(c *gin.Context) {
@@ -162,8 +166,25 @@ func (k *KeycloakAuthenticator)GetMiddlewareWithRequiredRole(requiredRole string
 			var claims OpenIDClaims
 			token.Claims(&claims)
 
-			if len(requiredRole) != 0 {
-				if len(claims.RealmAccess.Roles) == 0 || !contains(claims.RealmAccess.Roles, requiredRole) {
+			if len(requiredRoles) != 0 {
+				found := false
+
+				var roles []string
+				for _, r := range claims.Roles {
+					roles = append(roles, r)
+				}
+				for _, r := range claims.RealmAccess.Roles {
+					roles = append(roles, r)
+				}
+
+				for _, r := range requiredRoles {
+					if contains(roles, r) {
+						found = true
+						break
+					}
+				}
+
+				if !found {
 					k.ErrorHandler(newErrForbidden("you do not have the required role, access denied"), c)
 					return
 				}
