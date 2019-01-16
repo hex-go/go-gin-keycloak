@@ -19,6 +19,7 @@ const (
 type KeycloakAuthenticator struct {
 	verifiers []*oidc.IDTokenVerifier
 	ErrorHandler ErrorHandlerFunc
+	ClaimChecker OpenIDClaimCheckFunc
 }
 
 type OpenIDClaims struct {
@@ -62,6 +63,7 @@ type errorDetail struct {
 }
 
 type ErrorHandlerFunc func(error, *gin.Context)
+type OpenIDClaimCheckFunc func(*OpenIDClaims) string
 
 func NewKeycloakAuthenticator(urls []string, errorHandler ErrorHandlerFunc) (*KeycloakAuthenticator, error) {
 	ctx := context.Background()
@@ -89,6 +91,9 @@ func NewKeycloakAuthenticator(urls []string, errorHandler ErrorHandlerFunc) (*Ke
 	return &KeycloakAuthenticator{
 		verifiers: verifiers,
 		ErrorHandler: errorHandler,
+		ClaimChecker: func(claims *OpenIDClaims) string {
+			return ""
+		},
 	}, nil
 }
 
@@ -165,6 +170,12 @@ func (k *KeycloakAuthenticator)GetMiddlewareWithAnyRequiredRoles(requiredRoles [
 		if success {
 			var claims OpenIDClaims
 			token.Claims(&claims)
+
+			claimError := k.ClaimChecker(&claims)
+			if len(claimError) > 0 {
+				k.ErrorHandler(newErrForbidden(claimError), c)
+				return
+			}
 
 			if len(requiredRoles) != 0 {
 				found := false
