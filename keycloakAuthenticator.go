@@ -136,7 +136,11 @@ func (k *KeycloakAuthenticator)GetMiddleware() gin.HandlerFunc {
 }
 
 func (k *KeycloakAuthenticator)GetMiddlewareWithRequiredRole(requiredRole string) gin.HandlerFunc {
-	return k.GetMiddlewareWithAnyRequiredRoles([]string{requiredRole})
+	if len(requiredRole) > 0 {
+		return k.GetMiddlewareWithAnyRequiredRoles([]string{requiredRole})
+	} else {
+		return k.GetMiddlewareWithAnyRequiredRoles([]string{})
+	}
 }
 
 func (k *KeycloakAuthenticator)GetMiddlewareWithAnyRequiredRoles(requiredRoles []string) gin.HandlerFunc {
