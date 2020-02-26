@@ -23,6 +23,7 @@ type KeycloakAuthenticator struct {
 }
 
 type OpenIDClaims struct {
+	Audience string `json:"aud"`
 	Name string `json:"name"`
 	GivenName string `json:"given_name"`
 	FamilyName string `json:"family_name"`
